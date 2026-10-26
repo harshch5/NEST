@@ -30,14 +30,15 @@ export function createEventBus(): EventBus {
       const subscribers = handlers.get(name);
       if (!subscribers) return 0;
 
-      for (const handler of [...subscribers]) {
+      const subscribersToCall = [...subscribers];
+      for (const handler of subscribersToCall) {
         try {
           handler(payload);
         } catch (error) {
           console.error(`Event handler for "${name}" failed:`, error);
         }
       }
-      return subscribers.length;
+      return subscribersToCall.length;
     },
 
     subscribe<K extends EventName>(name: K, fn: Handler<K>): Unsubscribe {
