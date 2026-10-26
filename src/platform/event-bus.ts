@@ -23,5 +23,36 @@ export interface EventBus {
 }
 
 export function createEventBus(): EventBus {
-  throw new Error("not implemented");
+  const handlers = new Map<EventName, Array<(payload: unknown) => void>>();
+
+  return {
+    publish<K extends EventName>(name: K, payload: DomainEvents[K]): number {
+      const subscribers = handlers.get(name);
+      if (!subscribers) return 0;
+
+      const subscribersToCall = [...subscribers];
+      for (const handler of subscribersToCall) {
+        try {
+          handler(payload);
+        } catch (error) {
+          console.error(`Event handler for "${name}" failed:`, error);
+        }
+      }
+      return subscribersToCall.length;
+    },
+
+    subscribe<K extends EventName>(name: K, fn: Handler<K>): Unsubscribe {
+      const handler = (payload: unknown) => fn(payload as DomainEvents[K]);
+      const subscribers = handlers.get(name) ?? [];
+      subscribers.push(handler);
+      handlers.set(name, subscribers);
+
+      return () => {
+        const index = subscribers.indexOf(handler);
+        if (index !== -1) subscribers.splice(index, 1);
+      };
+    },
+  };
 }
+
+export const eventBus = createEventBus();
